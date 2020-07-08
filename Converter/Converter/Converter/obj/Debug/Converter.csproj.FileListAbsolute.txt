@@ -1,0 +1,7 @@
+C:\Users\Munib\Desktop\TaskManger Project\Converter\Converter\Converter\bin\Debug\Converter.exe.config
+C:\Users\Munib\Desktop\TaskManger Project\Converter\Converter\Converter\bin\Debug\Converter.exe
+C:\Users\Munib\Desktop\TaskManger Project\Converter\Converter\Converter\bin\Debug\Converter.pdb
+C:\Users\Munib\Desktop\TaskManger Project\Converter\Converter\Converter\obj\Debug\Converter.csprojAssemblyReference.cache
+C:\Users\Munib\Desktop\TaskManger Project\Converter\Converter\Converter\obj\Debug\Converter.csproj.CoreCompileInputs.cache
+C:\Users\Munib\Desktop\TaskManger Project\Converter\Converter\Converter\obj\Debug\Converter.exe
+C:\Users\Munib\Desktop\TaskManger Project\Converter\Converter\Converter\obj\Debug\Converter.pdb
