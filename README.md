@@ -1,6 +1,7 @@
 ![](image.gif)
 # Taskmanager
-Enables you to alter the heatmap in taskmanager to draw bitmaps. 
+Enables you to alter the heatmap(by spoofing in the number of logical cores) in taskmanager to draw bitmaps.
+No this will not magically give you more computing power. 
 This only works on **Windows 10 build 1909**
 
 ## Compiling & Executing
