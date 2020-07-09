@@ -22,7 +22,7 @@ HANDLE process;
 #define UPDATE_DATA_FUNCTION 0xab738 // CpuHeatMap::UpdateData
 #define GET_BLOCK_COLOURS_FUNCTION 0xaacbc//CpuHeatMap::GetBlockColors
 #define SET_BLOCK_DATA_FUNCTION 0xab614//CpuHeatMap::SetBlockData
-#define REFRESH_RATE_VALUE 0xfa2b4
+#define REFRESH_RATE_VALUE 0xfa2b4 //Referenced in  ?SetRefreshRate@TmTraceControl as second param |DAT.. = param_2
 #define SET_REFRESH_RATE_FUNCTION 0x41fe4 //TmTraceControl::SetRefreshRate 
 //Position inside the GLOBAL_SETTINGS_TASKMGR
 #define GLOBAL_SETTINGS_CPU_OFFSET 0x944 //not relative to BaseAdress but GLOBAL_SETTINGS_TASKMGR
