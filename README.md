@@ -15,4 +15,5 @@ The produced DLL can be injected from a tool like [Process Hacker](https://proce
 Once the DLL is injected switch over to the ```Preformance``` tab and set the update  speed to ```High``` by navigating to ```View>Update speed``` in task manager.This should set the refresh rate to the one set in the DLL.
 
 Switch over to ```Logical Processors``` in task manager by right clicking on the CPU graph and navigate to ```Change graph to > Logical Processors``` and it should display the bitmap.
+
 If the dll crashes then that could possibly be a sign of a different version of task manager running. 
