@@ -5,8 +5,7 @@
 #include <stdint.h>
 #include <Psapi.h>
 #include "video.h"
-#include "detours.h"
-#include <thread>   
+#include "detours.h" //if this is not found then get this from NuGet package manager in VS
 #define MEM(x) (*(int *)(x))
 
 
@@ -14,22 +13,31 @@
 // base address
 static uintptr_t BaseAddress;
 HANDLE process;
-//all of these values must be relative to BaseAddress
-#define GLOBAL_SETTINGS_TASKMGR  0xfb550 
-#define GLOBAL_SETTINGS_CPU_OFFSET 0x944
+
+#define FAKE_TIME  10  //time in ms on per frame.
 #define FAKE_CORES 1024//this looks nice ngl. Cant be less then or equal to  0x40
 
+//all of these values must be relative to BaseAddress
+#define GLOBAL_SETTINGS_TASKMGR  0xfb550 //Referenced as param in RunTimeSettings::GetProcessorDetailsLogicalCount
 #define UPDATE_DATA_FUNCTION 0xab738 // CpuHeatMap::UpdateData
 #define GET_BLOCK_COLOURS_FUNCTION 0xaacbc//CpuHeatMap::GetBlockColors
 #define SET_BLOCK_DATA_FUNCTION 0xab614//CpuHeatMap::SetBlockData
+#define SET_REFRESH_RATE_FUNCTION 0x41fe4 //TmTraceControl::SetRefreshRate 
+//Position inside the GLOBAL_SETTINGS_TASKMGR
+#define GLOBAL_SETTINGS_CPU_OFFSET 0x944 //not relative to BaseAdress but GLOBAL_SETTINGS_TASKMGR
 
 int( *UpdateData)(void *);
+int(*RefreshTimer)(void *,int);
 void(*GetBlockColours)(void *, int core, long *background, long *border);
 void(*SetBlockData)(void *, int, const wchar_t* string, long background, long border);
 
 int frame =0 ;
 int *globalHandle;
 int ran =0;
+int MyRefreshTimer(int *handle, int time) {
+	printf("Time: %d \n", time); //Actual time from the checkboxes
+	return RefreshTimer(handle, FAKE_TIME);
+}
 //Runs every update in task manager.
 int  MyUpdateData(int *handle)
 {
@@ -64,22 +72,20 @@ bool attach() {
 	printf("Base address 0x%I64X\n", BaseAddress);
 	//Functions
 	UpdateData = (decltype(UpdateData))(BaseAddress + UPDATE_DATA_FUNCTION);
+	RefreshTimer = (decltype(RefreshTimer))(BaseAddress + SET_REFRESH_RATE_FUNCTION);
 	GetBlockColours = (decltype(GetBlockColours))(BaseAddress + GET_BLOCK_COLOURS_FUNCTION);
 	SetBlockData = (decltype(SetBlockData))(BaseAddress + SET_BLOCK_DATA_FUNCTION);
 
 
 	printf("Applying fake cores...\n");
 	MEM(BaseAddress + GLOBAL_SETTINGS_TASKMGR + GLOBAL_SETTINGS_CPU_OFFSET) = FAKE_CORES;
-	//If it made it this far then load the file
-
-    //Detour the UpdateData function
+	//if TaskManager crashes after exeuting this then the stubs are wrong.
+    //Detour the functions
 	DetourTransactionBegin();
-	printf("Detouring function from 0x%p to 0x%p\n", &UpdateData, &MyUpdateData);
 	DetourUpdateThread(GetCurrentThread());
 	DetourAttach(&(PVOID&)UpdateData, MyUpdateData);
+	DetourAttach(&(PVOID&)RefreshTimer, MyRefreshTimer);
 	DetourTransactionCommit();
-	
-	
 	
 	
 	return true;
