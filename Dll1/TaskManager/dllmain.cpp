@@ -22,6 +22,7 @@ HANDLE process;
 #define UPDATE_DATA_FUNCTION 0xab738 // CpuHeatMap::UpdateData
 #define GET_BLOCK_COLOURS_FUNCTION 0xaacbc//CpuHeatMap::GetBlockColors
 #define SET_BLOCK_DATA_FUNCTION 0xab614//CpuHeatMap::SetBlockData
+#define REFRESH_RATE_VALUE 0xfa2b4
 #define SET_REFRESH_RATE_FUNCTION 0x41fe4 //TmTraceControl::SetRefreshRate 
 //Position inside the GLOBAL_SETTINGS_TASKMGR
 #define GLOBAL_SETTINGS_CPU_OFFSET 0x944 //not relative to BaseAdress but GLOBAL_SETTINGS_TASKMGR
@@ -32,10 +33,10 @@ void(*GetBlockColours)(void *, int core, long *background, long *border);
 void(*SetBlockData)(void *, int, const wchar_t* string, long background, long border);
 
 int frame =0 ;
-int *globalHandle;
-int ran =0;
+int delay;
 int MyRefreshTimer(int *handle, int time) {
 	printf("Time: %d \n", time); //Actual time from the checkboxes
+	delay = time;
 	return RefreshTimer(handle, FAKE_TIME);
 }
 //Runs every update in task manager.
@@ -152,6 +153,7 @@ BOOL APIENTRY DllMain( HMODULE hModule,
 	
     case DLL_THREAD_DETACH:
     case DLL_PROCESS_DETACH:
+		MEM(BaseAddress + REFRESH_RATE_VALUE) = delay; //Restore the value
         break;
     }
     return TRUE;
