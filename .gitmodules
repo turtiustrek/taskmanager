@@ -1,0 +1,3 @@
+[submodule "src/dll/libs/libmem"]
+	path = src/dll/libs/libmem
+	url = https://github.com/rdbo/libmem
