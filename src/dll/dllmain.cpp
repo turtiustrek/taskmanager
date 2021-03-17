@@ -136,6 +136,33 @@ DWORD WINAPI attach(LPVOID dllHandle)
 
     std::cout << "Base address " << (void *)mod.base << std::endl;
     std::cout << "DLL address " << (void *)attach << std::endl;
+    DWORD verHandle = 0;
+    UINT size = 0;
+    LPBYTE lpBuffer = NULL;
+    DWORD verSize = GetFileVersionInfoSize(process_path, &verHandle);
+
+    if (verSize != NULL)
+    {
+        LPSTR verData = new char[verSize];
+
+        if (GetFileVersionInfo(process_path, verHandle, verSize, verData))
+        {
+            if (VerQueryValueW(verData, L"\\", (VOID FAR * FAR *)&lpBuffer, &size))
+            {
+                if (size)
+                {
+                    VS_FIXEDFILEINFO *verInfo = (VS_FIXEDFILEINFO *)lpBuffer;
+                    if (verInfo->dwSignature == 0xfeef04bd)
+                    {
+                        SetConsoleTextAttribute(hConsole, 14);
+                        std::cout << "Process Version: " << ((verInfo->dwFileVersionMS >> 16) & 0xffff) << '.' << ((verInfo->dwFileVersionMS >> 0) & 0xffff) << '.' << ((verInfo->dwFileVersionLS >> 16) & 0xffff) << '.' << ((verInfo->dwFileVersionLS >> 0) & 0xffff) << std::endl;
+                        SetConsoleTextAttribute(hConsole, 7);
+                    }
+                }
+            }
+        }
+        delete[] verData;
+    }
     //Choose the table that is going to be used to find the functions
     for (int i = 0; i < (int)(sizeof(table) / sizeof(table[0])); i++)
     {
