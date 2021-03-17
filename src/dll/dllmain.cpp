@@ -13,10 +13,11 @@ Repo: https://github.com/turtiustrek/taskmanager
 #include <conio.h>
 #include <stdint.h>
 #include <wingdi.h>
-
+#include <algorithm>
+#include <shlwapi.h>
 //you can change these
 #define FAKE_CORES 1024 //this looks nice ngl. Cant be less then or equal to  0x40
-int blockWidth = 50;
+int blockWidth = 43;
 //#define SHOW_BITMAP_SCAN_MSG //shows what files are being loaded into memory. If you have alot of bitmaps keep this commented.
 
 mem_voidptr_t UpdateData = (mem_voidptr_t)MEM_BAD;
@@ -68,7 +69,7 @@ int64_t __fastcall UpdateDataHook(void *ret)
     wchar_t w[5];
     for (int i = 0; i < FAKE_CORES; i++)
     {
-        int pixel = *(bitmapPixels + (i + (currentFrame * 1024)));
+        int pixel = *(bitmapPixels + (i + (currentFrame * FAKE_CORES)));
         swprintf_s(w, L"%d%%", pixel);
         GetBlockColors(ret, pixel, &v11, &v10);
         SetBlockData(ret, i, w, v11, v10);
@@ -117,6 +118,8 @@ int map(int x, int in_min, int in_max, int out_min, int out_max)
 {
     return (x - in_min) * (out_max - out_min) / (in_max - in_min) + out_min;
 }
+
+bool compareFunction(std::wstring &a, std::wstring &b) { return StrCmpLogicalW(a.c_str(), b.c_str()) < 0; }
 //main thread of dllmain
 DWORD WINAPI attach(LPVOID dllHandle)
 
@@ -141,7 +144,7 @@ DWORD WINAPI attach(LPVOID dllHandle)
     LPBYTE lpBuffer = NULL;
     DWORD verSize = GetFileVersionInfoSize(process_path, &verHandle);
 
-    if (verSize != NULL)
+    if (verSize != (DWORD)NULL)
     {
         LPSTR verData = new char[verSize];
 
@@ -243,39 +246,49 @@ DWORD WINAPI attach(LPVOID dllHandle)
         int allocate = 0;
         int average = 0;
         int byte = 0;
+        std::vector<std::wstring> bitmaps;
         do
         {
             //TODO: Fix this bodge
             swprintf_s(files, L"%s\\..\\frames\\%s", dllDir, data.cFileName);
             HBITMAP hBitMap = (HBITMAP)::LoadImageW(NULL, files, IMAGE_BITMAP, 0, 0, LR_LOADFROMFILE);
             GetObject(hBitMap, sizeof(bm), &bm);
+            SetConsoleTextAttribute(hConsole, 11);
+            std::wcout << L"Loading: " << data.cFileName << L" Size W:" << bm.bmWidth << L" L:" << bm.bmHeight << std::endl;
+            SetConsoleTextAttribute(hConsole, 7);
+            bitmaps.push_back(data.cFileName);
+            allocate += bm.bmWidth * bm.bmHeight;
+        } while (FindNextFileW(hFind, &data));
+        FindClose(hFind);
+        std::cout << "Sorting bitmaps...";
+        std::sort(bitmaps.begin(), bitmaps.end(), compareFunction);
+        printDone(hConsole);
+        std::cout << "Total bitmaps: " << bitmaps.size() << std::endl;
+        std::cout << "Occupying " << allocate << " bytes...";
+        bitmapPixels = (char *)malloc(allocate);
+        if (bitmapPixels == (mem_voidptr_t)MEM_BAD)
+        {
+            printFail(hConsole);
+            SetConsoleTextAttribute(hConsole, 12);
+            std::cout << "malloc failed! waiting for exit" << std::endl;
+            SetConsoleTextAttribute(hConsole, 7);
+            return 0;
+        }
+        else
+        {
+            printDone(hConsole);
+        }
+        std::cout << "Processing region " << std::endl;
+        for (std::wstring &s : bitmaps)
+        {
+            //how dare thy repeat code like this!
+            //will fix later calm down
+            //TODO: Fix this bodge
+            swprintf_s(files, L"%s\\..\\frames\\%s", dllDir, s.c_str());
+            HBITMAP hBitMap = (HBITMAP)::LoadImageW(NULL, files, IMAGE_BITMAP, 0, 0, LR_LOADFROMFILE);
+            GetObject(hBitMap, sizeof(bm), &bm);
             hdc = CreateCompatibleDC(NULL);
             oldbitmap = (HBITMAP)SelectObject(hdc, hBitMap);
-#ifdef SHOW_BITMAP_SCAN_MSG
-            SetConsoleTextAttribute(hConsole, 11);
-            std::wcout << L"Loading: " << data.cFileName << std::endl;
-            SetConsoleTextAttribute(hConsole, 7);
-            std::cout << " Size W:" << bm.bmWidth << " L:" << bm.bmHeight << std::endl;
-#endif
-
-            allocate += bm.bmWidth * bm.bmHeight;
-
-            //realloc if it has not been malloc'd already
-            if (bitmapPixels == (char *)MEM_BAD)
-            {
-#ifdef SHOW_BITMAP_SCAN_MSG
-                std::cout << " Allocating " << allocate << " bytes" << std::endl;
-#endif
-                bitmapPixels = (char *)malloc(allocate);
-            }
-            else
-            {
-#ifdef SHOW_BITMAP_SCAN_MSG
-                std::cout << " Reallocating " << allocate << " bytes" << std::endl;
-#endif
-                bitmapPixels = (char *)realloc(bitmapPixels, allocate);
-            }
-
             for (int y = 0; y < bm.bmHeight; y++)
             {
                 for (int x = 0; x < bm.bmWidth; x++)
@@ -291,11 +304,10 @@ DWORD WINAPI attach(LPVOID dllHandle)
             SelectObject(hdc, oldbitmap);
             DeleteDC(hdc);
             frames++;
-            //std::cout << bitmapmem<< std::endl;
-            //std::cout << data.cFileName << std::endl;
-        } while (FindNextFileW(hFind, &data));
-        FindClose(hFind);
+            std::cout << "\r" << frames << "/" << bitmaps.size();
+        }
     }
+    std::cout << std::endl;
     if (frames > 0)
     {
         SetConsoleTextAttribute(hConsole, 11);
