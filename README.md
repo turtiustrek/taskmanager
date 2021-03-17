@@ -8,7 +8,7 @@ This works on Windows 10 build **19041** and **18363**
 Make sure you have [git](https://git-scm.com/downloads) and [mingw-w64](https://sourceforge.net/projects/mingw-w64/files/mingw-w64/)(x86_64,posix)  setup properly.
 NOTE: This will only work with x64 mingw,install the x64 version of it.
 #### Compiling
-Execute the following commands in CMD or PowerShell:
+Execute the following commands in CMD or PowerShell or in MYSYS2:
 ```
 git clone --recurse-submodules  https://github.com/turtiustrek/taskmanager
 cd taskmanager
