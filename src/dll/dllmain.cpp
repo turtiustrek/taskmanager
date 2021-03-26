@@ -7,6 +7,9 @@ Repo: https://github.com/turtiustrek/taskmanager
 #include <windows.h>
 #include "libs/libmem/libmem/libmem.hpp"
 #include "pattern.hpp"
+#include "rapidjson/document.h"
+#include "rapidjson/writer.h"
+#include "rapidjson/stringbuffer.h"
 #include <stdio.h>
 #include <iostream>
 #include <Windows.h>
@@ -15,9 +18,11 @@ Repo: https://github.com/turtiustrek/taskmanager
 #include <wingdi.h>
 #include <algorithm>
 #include <shlwapi.h>
+
+using namespace rapidjson;
 //you can change these
-#define FAKE_CORES 1024 //this looks nice ngl. Cant be less then or equal to  0x40
-int blockWidth = 43;
+short fakeCores = 0;
+int blockWidth = 0;
 //#define SHOW_BITMAP_SCAN_MSG //shows what files are being loaded into memory. If you have alot of bitmaps keep this commented.
 
 mem_voidptr_t UpdateData = (mem_voidptr_t)MEM_BAD;
@@ -34,11 +39,13 @@ int __fastcall (*SetBlockData)(void *, int, const wchar_t *string, long backgrou
 mem_module_t mod = {0};
 mem_tstring_t process_path = (mem_tstring_t)NULL;
 
-//task manager block width
-
+wchar_t dllDir[MAX_PATH];
+//JSON file
+/* \\.. is used since dllDir is pointed to current DLL file*/
+wchar_t config[MAX_PATH] = L"\\..\\config.json";
+wchar_t configpath[MAX_PATH];
 //bitmaps
 WIN32_FIND_DATAW data;
-wchar_t dllDir[MAX_PATH];
 wchar_t bitmapDir[MAX_PATH];
 wchar_t frame[] = L"\\..\\frames\\*.bmp";
 int frames = 0;
@@ -67,9 +74,10 @@ int64_t __fastcall UpdateDataHook(void *ret)
     long v10;
     long v11;
     wchar_t w[5];
-    for (int i = 0; i < FAKE_CORES; i++)
+    char pixel;
+    for (int i = 0; i < fakeCores; i++)
     {
-        int pixel = *(bitmapPixels + (i + (currentFrame * FAKE_CORES)));
+        pixel = *(bitmapPixels + (i + (currentFrame * fakeCores)));
         swprintf_s(w, L"%d%%", pixel);
         GetBlockColors(ret, pixel, &v11, &v10);
         SetBlockData(ret, i, w, v11, v10);
@@ -214,12 +222,64 @@ DWORD WINAPI attach(LPVOID dllHandle)
         SetConsoleTextAttribute(hConsole, 7);
         return 0;
     }
-    std::cout << "Placing hooks...";
+    GetModuleFileNameW((HMODULE)dllHandle, dllDir, sizeof(dllDir)); //popluate the dllDir path
+    wcsncpy(configpath, dllDir, MAX_PATH);
+    wcsncat(configpath, config, MAX_PATH);
+    //Read the JSON file for the config
+    char *fileptr;
+    HANDLE hFile = CreateFileW(configpath, GENERIC_READ, 0, NULL, OPEN_EXISTING, FILE_ATTRIBUTE_NORMAL, 0);
+    if (hFile != INVALID_HANDLE_VALUE)
+    {
+        int filesize = GetFileSize(hFile, NULL);
+        fileptr = (char *)malloc(filesize);
+        DWORD readfilesize;
+        if (ReadFile(hFile, fileptr, filesize, &readfilesize, NULL))
+        {
+            Document configs;
+            configs.Parse(fileptr);
+            fakeCores = configs["fake_cpu_count"].GetInt();
+            if (fakeCores > 65535)
+            {
+                fakeCores = 65535;
+            }
+            else if (fakeCores < 64)
+            {
+                fakeCores = 64;
+            }
+            blockWidth = configs["block_width"].GetInt();
+            if (blockWidth < 1)
+            {
+                blockWidth = 1;
+            }
+            free(fileptr);
+            fileptr = NULL;
+        }
+        else
+        {
+            SetConsoleTextAttribute(hConsole, 12);
+            std::cout << "cannot read file, waiting for exit" << std::endl;
+            SetConsoleTextAttribute(hConsole, 7);
+            return 0;
+        }
+    }
+    else
+    {
+        SetConsoleTextAttribute(hConsole, 12);
+        std::cout << "config file not found, waiting for exit" << std::endl;
+        SetConsoleTextAttribute(hConsole, 7);
+        return 0;
+    }
+    if (fileptr != NULL)
+    {
+        free(fileptr);
+    }
+    CloseHandle(hFile);
+    std::cout << "Fake core count: " << fakeCores << std::endl;
+    std::cout << "Block width: " << blockWidth << std::endl;
     //Gateway is NOT used! IsServer might be problamatic
     mem::in::detour_trampoline(UpdateData, (void *)UpdateDataHook, mem::in::detour_size(MEM_ASM_x86_JMP64), MEM_ASM_x86_JMP64);
     mem::in::detour_trampoline(IsServer, (void *)IsServerHook, mem::in::detour_size(MEM_ASM_x86_JMP64), MEM_ASM_x86_JMP64);
     mem::in::detour_trampoline(GetBlockWidth, (void *)GetBlockWidthHook, mem::in::detour_size(MEM_ASM_x86_JMP64), MEM_ASM_x86_JMP64);
-    printDone(hConsole);
     std::cout << "Waiting for GlobalSettings to populate...";
     while (GlobalSettings == (mem_voidptr_t)MEM_BAD)
     {
@@ -228,12 +288,11 @@ DWORD WINAPI attach(LPVOID dllHandle)
     std::cout << "Altering CPU count...";
     //Cast it as a unsigned short since the CPU 'settings' expects two bytes
     unsigned short *cpu_count = (unsigned short *)((char *)GlobalSettings + GLOBAL_SETTINGS_CPU_OFFSET);
-    *cpu_count = FAKE_CORES;
+    *cpu_count = fakeCores;
     printDone(hConsole);
     std::cout << "Scanning bitmaps and loading in memory..." << std::endl;
-    GetModuleFileNameW((HMODULE)dllHandle, dllDir, sizeof(dllDir));
     memcpy(bitmapDir, dllDir, sizeof(dllDir));
-    wcscat(bitmapDir, frame);
+    wcsncat(bitmapDir, frame, MAX_PATH);
     std::wcout << "Bitmap scan at: " << bitmapDir << std::endl;
     HANDLE hFind = FindFirstFileW(bitmapDir, &data);
     if (hFind != INVALID_HANDLE_VALUE)
@@ -250,7 +309,7 @@ DWORD WINAPI attach(LPVOID dllHandle)
         do
         {
             //TODO: Fix this bodge
-            swprintf_s(files, L"%s\\..\\frames\\%s", dllDir, data.cFileName);
+            swprintf_s(files, MAX_PATH, L"%s\\..\\frames\\%s", dllDir, data.cFileName);
             HBITMAP hBitMap = (HBITMAP)::LoadImageW(NULL, files, IMAGE_BITMAP, 0, 0, LR_LOADFROMFILE);
             GetObject(hBitMap, sizeof(bm), &bm);
             SetConsoleTextAttribute(hConsole, 11);
