@@ -1,3 +1,6 @@
 [submodule "src/dll/libs/libmem"]
 	path = src/dll/libs/libmem
 	url = https://github.com/rdbo/libmem
+[submodule "src/dll/libs/rapidjson"]
+	path = src/dll/libs/rapidjson
+	url = https://github.com/Tencent/rapidjson
