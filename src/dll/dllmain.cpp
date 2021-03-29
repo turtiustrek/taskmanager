@@ -20,14 +20,15 @@ Repo: https://github.com/turtiustrek/taskmanager
 #include <shlwapi.h>
 
 using namespace rapidjson;
-//you can change these
+
 short fakeCores = 0;
 int blockWidth = 0;
-//#define SHOW_BITMAP_SCAN_MSG //shows what files are being loaded into memory. If you have alot of bitmaps keep this commented.
 
 mem_voidptr_t UpdateData = (mem_voidptr_t)MEM_BAD;
 mem_voidptr_t GetBlockWidth = (mem_voidptr_t)MEM_BAD;
 mem_voidptr_t IsServer = (mem_voidptr_t)MEM_BAD;
+mem_voidptr_t SetRefreshRate = (mem_voidptr_t)MEM_BAD;
+
 void *handler = (mem_voidptr_t)MEM_BAD;
 void *GlobalSettings = (mem_voidptr_t)MEM_BAD;
 
@@ -35,6 +36,10 @@ int __fastcall (*GetBlockColors)(void *, int core, long *background, long *borde
 int __fastcall (*SetBlockData)(void *, int, const wchar_t *string, long background, long border);
 //Position inside the GLOBAL_SETTINGS_TASKMGR
 #define GLOBAL_SETTINGS_CPU_OFFSET 0x944 //not relative to BaseAdress but GLOBAL_SETTINGS_TASKMGR
+//Global
+uint32_t actualTime;
+uint32_t modifedTime;
+mem_voidptr_t timeHandle;
 //task manager handle
 mem_module_t mod = {0};
 mem_tstring_t process_path = (mem_tstring_t)NULL;
@@ -84,6 +89,22 @@ int64_t __fastcall UpdateDataHook(void *ret)
     }
 
     return 1;
+}
+//This function alters the draw timer.
+//This also wrties to a global variable apparently, so on the next re-launch this value would be used for the timer instead in the task manager
+typedef bool (*SetRefreshRateOrig_t)(void *ret, uint32_t time);
+SetRefreshRateOrig_t SetRefreshRateOrig;
+int64_t __fastcall SetRefreshRateHook(void *ret, uint32_t time)
+{
+    actualTime = time;
+    if (modifedTime != 0)
+    {
+        return SetRefreshRateOrig(ret, modifedTime);
+    }
+    else
+    {
+        return SetRefreshRateOrig(ret, time);
+    }
 }
 //Used to alter the size of the block
 int64_t __fastcall GetBlockWidthHook(void *ret)
@@ -196,7 +217,10 @@ DWORD WINAPI attach(LPVOID dllHandle)
         std::cout << "Finding SetBlockData function...";
         SetBlockData = (decltype(SetBlockData))(mem::in::scan(table[i].SetBlockDataPattern, PATTERN_BYTES, mod.base, mod.end));
         printnullptr(hConsole, (void *)SetBlockData);
-        if (UpdateData == (mem_voidptr_t)MEM_BAD || GetBlockWidth == (mem_voidptr_t)MEM_BAD || IsServer == (mem_voidptr_t)MEM_BAD || GetBlockColors == (mem_voidptr_t)MEM_BAD || SetBlockData == (mem_voidptr_t)MEM_BAD)
+        std::cout << "Finding SetRefreshRate function...";
+        SetRefreshRate = (decltype(SetRefreshRate))(mem::in::scan(table[i].SetRefreshRatePattern, PATTERN_BYTES, mod.base, mod.end));
+        printnullptr(hConsole, (void *)SetBlockData);
+        if (UpdateData == (mem_voidptr_t)MEM_BAD || GetBlockWidth == (mem_voidptr_t)MEM_BAD || IsServer == (mem_voidptr_t)MEM_BAD || GetBlockColors == (mem_voidptr_t)MEM_BAD || SetBlockData == (mem_voidptr_t)MEM_BAD || SetRefreshRate == (mem_voidptr_t)MEM_BAD)
         {
             //break if all tables have been checked
             if (i == (sizeof(table) / sizeof(table[0])) - 1)
@@ -215,7 +239,7 @@ DWORD WINAPI attach(LPVOID dllHandle)
             break;
         }
     }
-    if (UpdateData == (mem_voidptr_t)MEM_BAD || GetBlockWidth == (mem_voidptr_t)MEM_BAD || IsServer == (mem_voidptr_t)MEM_BAD || GetBlockColors == (mem_voidptr_t)MEM_BAD || SetBlockData == (mem_voidptr_t)MEM_BAD)
+    if (UpdateData == (mem_voidptr_t)MEM_BAD || GetBlockWidth == (mem_voidptr_t)MEM_BAD || IsServer == (mem_voidptr_t)MEM_BAD || GetBlockColors == (mem_voidptr_t)MEM_BAD || SetBlockData == (mem_voidptr_t)MEM_BAD || SetRefreshRate == (mem_voidptr_t)MEM_BAD)
     {
         SetConsoleTextAttribute(hConsole, 12);
         std::cout << "One or more functions were not found, waiting for exit" << std::endl;
@@ -251,6 +275,10 @@ DWORD WINAPI attach(LPVOID dllHandle)
             {
                 blockWidth = 1;
             }
+            modifedTime = configs["modifed_time"].GetInt();
+            if(modifedTime < 1){
+                modifedTime = actualTime;
+            }
             free(fileptr);
             fileptr = NULL;
         }
@@ -276,10 +304,12 @@ DWORD WINAPI attach(LPVOID dllHandle)
     CloseHandle(hFile);
     std::cout << "Fake core count: " << fakeCores << std::endl;
     std::cout << "Block width: " << blockWidth << std::endl;
+    std::cout << "Modified Time: " << modifedTime << "ms" <<  std::endl;
     //Gateway is NOT used! IsServer might be problamatic
     mem::in::detour_trampoline(UpdateData, (void *)UpdateDataHook, mem::in::detour_size(MEM_ASM_x86_JMP64), MEM_ASM_x86_JMP64);
     mem::in::detour_trampoline(IsServer, (void *)IsServerHook, mem::in::detour_size(MEM_ASM_x86_JMP64), MEM_ASM_x86_JMP64);
     mem::in::detour_trampoline(GetBlockWidth, (void *)GetBlockWidthHook, mem::in::detour_size(MEM_ASM_x86_JMP64), MEM_ASM_x86_JMP64);
+    SetRefreshRateOrig = (SetRefreshRateOrig_t)mem::in::detour_trampoline(SetRefreshRate, (void *)SetRefreshRateHook, mem::in::detour_size(MEM_ASM_x86_JMP64) + 2, MEM_ASM_x86_JMP64);
     std::cout << "Waiting for GlobalSettings to populate...";
     while (GlobalSettings == (mem_voidptr_t)MEM_BAD)
     {
@@ -503,9 +533,8 @@ extern "C" BOOL APIENTRY DllMain(HMODULE hModule,
         if (bitmapPixels != (char *)MEM_BAD)
         {
             free(bitmapPixels);
-            MessageBoxW(NULL, L"DLL exited successfully", L"Info", MB_ICONINFORMATION);
         }
-
+        MessageBoxW(NULL, L"DLL exited successfully", L"Info", MB_ICONINFORMATION);
         break;
     }
     return TRUE;
