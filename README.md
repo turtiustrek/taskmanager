@@ -24,6 +24,8 @@ If the bitmap seems distorted, adjust the ```BlockWidth``` by using the commmand
 ![](console.png)
 
 
+If you encounter a problem with any part, you can find me on [discord](https://discord.com/invite/RrB6uJMqNw) or simply open a issue.
+
 
 
 
