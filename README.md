@@ -2,7 +2,7 @@
 # Taskmanager
 Enables you to alter the heatmap(by spoofing in the number of logical cores) in taskmanager to draw bitmaps.
 No this will not magically give you more computing power. 
-This will on work on these task manager builds:
+This will on work on the following task manager builds:
 ```
 10.0.19041.746
 10.0.18362.1316
