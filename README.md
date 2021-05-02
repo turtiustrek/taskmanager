@@ -2,7 +2,13 @@
 # Taskmanager
 Enables you to alter the heatmap(by spoofing in the number of logical cores) in taskmanager to draw bitmaps.
 No this will not magically give you more computing power. 
-This works on Windows 10 build **19041** and **18363**
+This will on work on these task manager builds:
+```
+10.0.19041.746
+10.0.18362.1316
+10.0.18362.1
+10.0.19041.84
+```
 
 ## Compiling & Executing
 Make sure you have [git](https://git-scm.com/downloads) and [mingw-w64](https://sourceforge.net/projects/mingw-w64/files/mingw-w64/)(x86_64,posix)  setup properly.
