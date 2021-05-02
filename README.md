@@ -7,7 +7,7 @@ This will on work on the following task manager builds:
 10.0.19041.746
 10.0.18362.1316
 10.0.18362.1
-10.0.19041.84
+10.0.19041.846
 ```
 
 ## Compiling & Executing
