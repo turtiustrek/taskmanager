@@ -219,7 +219,7 @@ DWORD WINAPI attach(LPVOID dllHandle)
         printnullptr(hConsole, (void *)SetBlockData);
         std::cout << "Finding SetRefreshRate function...";
         SetRefreshRate = (decltype(SetRefreshRate))(mem::in::scan(table[i].SetRefreshRatePattern, PATTERN_BYTES, mod.base, mod.end));
-        printnullptr(hConsole, (void *)SetBlockData);
+        printnullptr(hConsole, (void *)SetRefreshRate);
         if (UpdateData == (mem_voidptr_t)MEM_BAD || GetBlockWidth == (mem_voidptr_t)MEM_BAD || IsServer == (mem_voidptr_t)MEM_BAD || GetBlockColors == (mem_voidptr_t)MEM_BAD || SetBlockData == (mem_voidptr_t)MEM_BAD || SetRefreshRate == (mem_voidptr_t)MEM_BAD)
         {
             //break if all tables have been checked
