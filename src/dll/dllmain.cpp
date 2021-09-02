@@ -208,15 +208,15 @@ DWORD WINAPI attach(LPVOID dllHandle)
         std::cout << "Finding GetBlockWidth function...";
         GetBlockWidth = mem::in::scan(table[i].GetBlockWidthPattern, PATTERN_BYTES, mod.base, mod.end);
         printnullptr(hConsole, GetBlockWidth);
-        std::cout << "Finding IsServer function...";
-        IsServer = mem::in::scan(table[i].IsServerPattern, PATTERN_BYTES, mod.base, mod.end);
-        printnullptr(hConsole, IsServer);
         std::cout << "Finding GetBlockColors function...";
         GetBlockColors = (decltype(GetBlockColors))(mem::in::scan(table[i].GetBlockColorsPattern, PATTERN_BYTES, mod.base, mod.end));
         printnullptr(hConsole, (void *)GetBlockColors);
         std::cout << "Finding SetBlockData function...";
         SetBlockData = (decltype(SetBlockData))(mem::in::scan(table[i].SetBlockDataPattern, PATTERN_BYTES, mod.base, mod.end));
         printnullptr(hConsole, (void *)SetBlockData);
+        std::cout << "Finding IsServer function...";
+        IsServer = mem::in::scan(table[i].IsServerPattern, PATTERN_BYTES, mod.base, mod.end);
+        printnullptr(hConsole, IsServer);
         std::cout << "Finding SetRefreshRate function...";
         SetRefreshRate = (decltype(SetRefreshRate))(mem::in::scan(table[i].SetRefreshRatePattern, PATTERN_BYTES, mod.base, mod.end));
         printnullptr(hConsole, (void *)SetRefreshRate);
