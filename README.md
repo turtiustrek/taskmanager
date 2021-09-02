@@ -28,10 +28,8 @@ If all the checks passes then, switch over to the ```Preformance``` tab and set 
 Switch over to ```Logical Processors``` in task manager by right clicking on the CPU graph and navigate to ```Change graph to > Logical Processors``` and it should display the bitmap.
 If the bitmap seems distorted, adjust the ```BlockWidth``` by using the commmands in the console untill all of the blocks in task manager are on the screen and make sure that it does not scroll.
 ![](console.png)
-
-
-If you encounter a problem with any part, you can find me on [discord](https://discord.com/invite/RrB6uJMqNw) or simply open a issue.
-
+If you encounter a problem with any part, you can find me on discord or simply open a issue.
+![Discord Shield](https://discordapp.com/api/guilds/820633349080875028/widget.png?style=banner2)
 
 
 
