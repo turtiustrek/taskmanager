@@ -260,8 +260,21 @@ DWORD WINAPI attach(LPVOID dllHandle)
         if (ReadFile(hFile, fileptr, filesize, &readfilesize, NULL))
         {
             Document configs;
-            configs.Parse(fileptr);
-            fakeCores = configs["fake_cpu_count"].GetInt();
+            if (configs.Parse(fileptr).HasParseError())
+            {
+                SetConsoleTextAttribute(hConsole, 12);
+                std::cout << "config parsing error has occured, falling back to default values" << std::endl;
+                SetConsoleTextAttribute(hConsole, 7);
+                fakeCores = 1024;
+                blockWidth = 47;
+                modifedTime = 50;
+            }
+            else
+            {
+                fakeCores = configs["fake_cpu_count"].GetInt();
+                blockWidth = configs["block_width"].GetInt();
+                modifedTime = configs["modifed_time"].GetInt();
+            }
             if (fakeCores > 65535)
             {
                 fakeCores = 65535;
@@ -270,13 +283,14 @@ DWORD WINAPI attach(LPVOID dllHandle)
             {
                 fakeCores = 64;
             }
-            blockWidth = configs["block_width"].GetInt();
+
             if (blockWidth < 1)
             {
                 blockWidth = 1;
             }
-            modifedTime = configs["modifed_time"].GetInt();
-            if(modifedTime < 1){
+
+            if (modifedTime < 1)
+            {
                 modifedTime = actualTime;
             }
             free(fileptr);
@@ -304,7 +318,7 @@ DWORD WINAPI attach(LPVOID dllHandle)
     CloseHandle(hFile);
     std::cout << "Fake core count: " << fakeCores << std::endl;
     std::cout << "Block width: " << blockWidth << std::endl;
-    std::cout << "Modified Time: " << modifedTime << "ms" <<  std::endl;
+    std::cout << "Modified Time: " << modifedTime << "ms" << std::endl;
     //Gateway is NOT used! IsServer might be problamatic
     mem::in::detour_trampoline(UpdateData, (void *)UpdateDataHook, mem::in::detour_size(MEM_ASM_x86_JMP64), MEM_ASM_x86_JMP64);
     mem::in::detour_trampoline(IsServer, (void *)IsServerHook, mem::in::detour_size(MEM_ASM_x86_JMP64), MEM_ASM_x86_JMP64);
