@@ -21,19 +21,19 @@ Repo: https://github.com/turtiustrek/taskmanager
 
 using namespace rapidjson;
 
-short fakeCores = 0;
-int blockWidth = 0;
+uint16_t fakeCores = 0;
+uint32_t blockWidth = 0;
 
 mem_voidptr_t UpdateData = (mem_voidptr_t)MEM_BAD;
 mem_voidptr_t GetBlockWidth = (mem_voidptr_t)MEM_BAD;
 mem_voidptr_t IsServer = (mem_voidptr_t)MEM_BAD;
 mem_voidptr_t SetRefreshRate = (mem_voidptr_t)MEM_BAD;
 
-void *handler = (mem_voidptr_t)MEM_BAD;
-void *GlobalSettings = (mem_voidptr_t)MEM_BAD;
+mem_voidptr_t handler = (mem_voidptr_t)MEM_BAD;
+mem_voidptr_t GlobalSettings = (mem_voidptr_t)MEM_BAD;
 
-int __fastcall (*GetBlockColors)(void *, int core, long *background, long *border);
-int __fastcall (*SetBlockData)(void *, int, const wchar_t *string, long background, long border);
+int32_t __fastcall (*GetBlockColors)(void *, int core, long *background, long *border);
+int32_t __fastcall (*SetBlockData)(void *, int, const wchar_t *string, long background, long border);
 //Position inside the GLOBAL_SETTINGS_TASKMGR
 #define GLOBAL_SETTINGS_CPU_OFFSET 0x944 //not relative to BaseAdress but GLOBAL_SETTINGS_TASKMGR
 //Global
