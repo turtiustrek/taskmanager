@@ -5,6 +5,7 @@ No this will not magically give you more computing power.
 This will on work on the following task manager builds:
 ```
 10.0.22000.1
+10.0.22000.65
 10.0.19041.84
 10.0.19041.844
 10.0.19041.746
